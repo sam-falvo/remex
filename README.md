@@ -56,6 +56,7 @@ In particular, it will need to know or discover:
 * Minimum inter-frame gap.
 * Is the Kestrel the master, or is the device the master?
 * Is the payload 5-bits, 8-bits, 11-bits, 14-bits, 16-bits, 20-bits, or something else all-together?  Not all SPI devices are based on octets!
+* Is the slave a mode-0, mode-1, mode-2, or mode-3 device?
 
 When interfacing to an MCU,
 you'll often have limited SPI resources.
