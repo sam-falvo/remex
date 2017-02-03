@@ -108,6 +108,16 @@ Most recently, I researched what it would take to couple my PC to the icoBoard v
 * Digilent USB Pmod adapter: $15.
 * CTS/RTS support: cable supports it; but, the USB Pmod only supports XON/XOFF handshaking, for it doesn't expose CTS/DTS pins to the Pmod interface.
 
+This is a total cost of $30 for an incompletely supported interface.
+On the other hand, I can acquire a NodeMCU ESP8266 microcontroller for $3, literally 1/10th the cost, including USB cable.
+This MCU has one fully-functional UART, and one TX-only transmitter.
+While this *forces* me to bit-bang the other side of the interface,
+it's still worth it considering the low cost.
+Problem is, bit-banging RS-232 is insanely hard to get right due to tight timing tolerances.
+For low baud rates, it's much easier;
+but for anything higher than 4800 baud,
+it'll be quite challenging to service the port *and* your intended function at the same time.
+
 RS-232 also suffers the disadvantage that the computer must pre-configure the port with baud rates and such.
 
 RapidIO doesn't seem to be compatible with RS-232 either, at least without layering something like PPP or SLIP on top first.
