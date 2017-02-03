@@ -4,6 +4,8 @@ This core is still experimental and exploratory in nature.
 
 This core is given the preliminary KCP part number: KCP53005.
 
+This core is named after the flight feathers on a bird's wing.
+
 ## Introduction
 
 Porting the Kestrel-3 to the icoBoard Gamma FPGA board,
