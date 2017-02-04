@@ -27,7 +27,8 @@ module rx_DS_SE(
 	input		rxReset,
 
 	output	[1:0]	dq,
-	output		dqValid
+	output		dqValid,
+	output		dqParity
 );
 	wire rxPhase = d ^ s;
 
@@ -58,19 +59,23 @@ module rx_DS_SE(
 	wire bit1Enable = edgeDetect & ~rxPhase_r;
 
 	reg bit0_r, bit1_r;
+	reg runningParity;
 
 	always @(posedge rxClk) begin
 		if(rxReset) begin
 			bit0_r <= 0;
 			bit1_r <= 0;
+			runningParity <= 0;
 		end
 		else begin
 			if(bit0Enable) begin
 				bit0_r <= d_r;
+				runningParity <= runningParity ^ d_r;
 			end
 
 			if(bit1Enable) begin
 				bit1_r <= d_r;
+				runningParity <= runningParity ^ d_r;
 			end
 		end
 	end
@@ -83,18 +88,20 @@ module rx_DS_SE(
 	// first bit, making it a spurious pulse.  qnfe
 	// prevents this pulse from making it out to dqValid.
 
-	reg q0, q1, qen, qnfe;
+	reg q0, q1, qp, qen, qnfe;
 
 	always @(posedge rxClk) begin
 		if(rxReset) begin
 			q0 <= 0;
 			q1 <= 0;
+			qp <= 0;
 			qen <= 0;
 			qnfe <= 0;
 		end
 		else begin
 			q0 <= bit0_r;
 			q1 <= bit1_r;
+			qp <= runningParity;
 			qen <= bit0Enable;
 			qnfe <= qen | qnfe;
 		end
@@ -102,5 +109,6 @@ module rx_DS_SE(
 
 	assign dq = {q1, q0};
 	assign dqValid = qen & qnfe;
+	assign dqParity = qp;
 endmodule
 

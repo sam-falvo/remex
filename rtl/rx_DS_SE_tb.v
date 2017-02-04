@@ -5,6 +5,7 @@ module rx_DS_SE_tb();
 	reg		rxClk, rxReset;
 	wire	[1:0]	dq;
 	wire		dqValid;
+	wire		dqParity;
 
 	rx_DS_SE dut(
 		.d(d),
@@ -12,7 +13,8 @@ module rx_DS_SE_tb();
 		.rxClk(rxClk),
 		.rxReset(rxReset),
 		.dq(dq),
-		.dqValid(dqValid)
+		.dqValid(dqValid),
+		.dqParity(dqParity)
 	);
 
 	task assert_dqvalid;
