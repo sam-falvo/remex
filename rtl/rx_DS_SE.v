@@ -5,6 +5,20 @@
 // self-clocked because I was unable to get a true self-clocked
 // implementation to properly simulate and report back any
 // estimated timing parameters.
+//
+// Instead, I use a master clock, rxClk, which must run at least
+// 3x the desired maximum supported data rate.  To meet DS-SE-02
+// maximum specifications, rxClk must be run at 600MHz.
+//
+// The result is scoped by the dqValid output.  This is a *pulse*,
+// which lasts for one rxClk period.  When asserted, the bits on
+// dq[1:0] are valid.
+//
+// NOTE: Due to the extensive use of flipflops in the design,
+// the circuit described below naturally forms a pipeline.
+// dqValid doesn't assert for a given bit-pair P until the
+// module is already receiving bit-pair P+1.  I recognize this
+// is inconvenient.  However, it's the best I could do.  :(
 
 module rx_DS_SE(
 	input		d,
@@ -61,7 +75,15 @@ module rx_DS_SE(
 		end
 	end
 
-	reg q0, q1, qen, qnfe;	// qNotFirstEnable pulse
+	// q0, q1, qen synchronize the output state of the 
+	// module.  qnfe is used internally to gate dqValid.
+	// qnfe tracks whether or not the qen pulse has been
+	// seen at least once.  Due to how the above logic
+	// works, qen signals high when receiving the very
+	// first bit, making it a spurious pulse.  qnfe
+	// prevents this pulse from making it out to dqValid.
+
+	reg q0, q1, qen, qnfe;
 
 	always @(posedge rxClk) begin
 		if(rxReset) begin
