@@ -5,6 +5,7 @@ module rx_top_tb();
 	reg d, s;
 	wire [7:0] q;
 	wire nchar, lchar, parityError;
+	wire full_o, empty_o;
 
 	always begin
 		#10; rxClk <= ~rxClk;
@@ -18,7 +19,9 @@ module rx_top_tb();
 		.q(q),
 		.nchar(nchar),
 		.lchar(lchar),
-		.parityError(parityError)
+		.parityError(parityError),
+		.full_o(full_o),
+		.empty_o(empty_o)
 	);
 
 	initial begin

@@ -15,7 +15,7 @@ queue_8x9:
 	vvp -n a.out
 
 # Debug/development only
-rx_top:
-	iverilog rx_top_tb.v rx_top.v rx_DS_char.v rx_DS_SE.v
+rx_top: rx_DS_SE rx_DS_char queue_8x9
+	iverilog rx_top_tb.v rx_top.v rx_DS_char.v rx_DS_SE.v queue_8x9.v
 	vvp -n a.out
 

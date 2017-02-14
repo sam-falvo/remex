@@ -9,7 +9,10 @@ module rx_top(
 	output	[7:0]	q,
 	output		nchar,
 	output		lchar,
-	output		parityError
+	output		parityError,
+
+	output		full_o,
+	output		empty_o
 );
 	wire	[1:0]	d_to_charDetector;
 	wire		dv_to_charDetector;
@@ -32,6 +35,23 @@ module rx_top(
 		.nchar(nchar),
 		.lchar(lchar),
 		.parityError(parityError)
+	);
+
+	queue_8x9 queue(
+		.clk(rxClk),
+		.reset(rxReset),
+		.nchar(nchar),
+		.lchar(lchar),
+		.char_i(q),
+		.stb_i(1'b0),
+		.ack_o(),
+		.dat_o(),
+		.full_o(full_o),
+		.empty_o(empty_o),
+		.occupied_tb(),
+		.rp_tb(),
+		.wp_tb(),
+		.we_tb()
 	);
 endmodule
 
