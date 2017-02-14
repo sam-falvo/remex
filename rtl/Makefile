@@ -1,6 +1,6 @@
 .phony: test dlatch rx_DS_SE
 
-test:	rx_DS_SE rx_DS_char rx_top
+test:	rx_DS_SE rx_DS_char rx_top queue_8x9
 
 rx_DS_SE:
 	iverilog rx_DS_SE_tb.v rx_DS_SE.v
@@ -8,6 +8,10 @@ rx_DS_SE:
 
 rx_DS_char:
 	iverilog rx_DS_char_tb.v rx_DS_char.v
+	vvp -n a.out
+
+queue_8x9:
+	iverilog queue_8x9_tb.v queue_8x9.v
 	vvp -n a.out
 
 # Debug/development only
