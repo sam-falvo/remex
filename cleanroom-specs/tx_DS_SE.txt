@@ -1,0 +1,167 @@
+* REQUIREMENTS
+
+
+R1
+    Upon reset, the D and S outputs must drop low.
+
+R2
+    The D output always equals the bit being transmitted.
+    
+R3
+    The S bit toggles whenever the D bit remains the same value from one bit to the next.
+    
+
+
+* BLACK BOX
+
+
+STIMULUS
+
+
+R   Reset               R1
+O   Transmit a '1'      R2
+Z   Transmit a '0'      R2
+
+
+RESPONSES
+
+
+D0  Drive D low.        R2
+D1  Drive D high.       R2
+S0  Drive S low.        R3
+S1  Drive S high.       R3
+
+
+ENUMERATIONS
+
+
+:
+    R               D0 S0                   R1
+    O   illegal
+    Z   illegal
+
+R:
+    R               -           R           R1
+    O               D1                      R2
+    Z               S1                      R3
+
+RO:
+    R               D0          R           R1
+    O               S1                      R3
+    Z               D0          R           R2
+
+RZ:
+    R               S0          R           R1
+    O               D1          ROO         R2
+    Z               S0          R           R3
+
+ROO:
+    R               D0 S0       R           R1
+    O               S0          RO          R2
+    Z               D0          RZ          R2
+
+
+CANONICAL SEQUENCES
+
+
+        D   S
+R       0   0
+RO      1   0
+RZ      0   1
+ROO     1   1
+
+
+* STATE BOX
+
+
+IF D,S=0,0 THEN
+    IF cmd=O THEN
+        D=1
+    END
+    IF cmd=Z THEN
+        S=1
+    END
+END
+
+IF D,S=1,0 THEN
+    IF cmd=R THEN
+        D=0
+    END
+    IF cmd=O THEN
+        S=1
+    END
+    IF cmd=Z THEN
+        D=0
+    END
+END
+
+IF D,S=0,1 THEN
+    IF cmd=R THEN
+        S=0
+    END
+    IF cmd=O THEN
+        D=1
+    END
+    IF cmd=Z THEN
+        S=0
+    END
+END
+
+IF D,S=1,1 THEN
+    IF cmd=R THEN
+        D,S=0,0
+    END
+    IF cmd=O THEN
+        S=0
+    END
+    IF cmd=Z THEN
+        D=0
+    END
+END
+
+
+    D   S   CMD     D'  S'
+ 1  0   0   R       0   0
+ 2  0   0   O       1   0
+ 3  0   0   Z       0   1
+ 4  0   1   R       0   0
+ 5  0   1   O       1   1
+ 6  0   1   Z       0   0
+ 7  1   1   R       0   0
+ 8  1   1   O       1   0
+ 9  1   1   Z       0   1
+10  1   0   R       0   0
+11  1   0   O       1   1
+12  1   0   Z       0   0
+
+
+* CLEAR BOX
+
+
+module tx_DS_SE(
+    input           TxClk,
+    input           TxReset,
+    input           Tx1,
+    input           Tx0,
+    output          D,
+    output          S
+);
+    reg D, S;
+
+    // SB 2, 3, 5, 6, 8, 9, 11, 12
+    wire nextD = Tx1;
+    wire nextS = (Tx0 & ~(D^S)) | (Tx1 & (D^S));
+
+    always @(posedge TxClk) begin
+        D <= D;
+        S <= S;
+
+        if(TxReset) begin           // SB 1, 4, 7, 10
+            {D, S} <= 2'b00;
+        end
+        else if(Tx0 | Tx1) begin    // SB 2, 3, 5, 6, 8, 9, 11, 12
+            {D, S} <= {nextD, nextS};
+        end
+    end
+end
+
