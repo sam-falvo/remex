@@ -23,3 +23,14 @@
 	end\
 	endtask
 
+`define DEFIO(name,highsuf,lowsuf)\
+	task name``lowsuf``;\
+	begin\
+		name <= 0; #10;\
+	end\
+	endtask\
+	task name``highsuf``;\
+	begin\
+		name <= 1; #10;\
+	end\
+	endtask

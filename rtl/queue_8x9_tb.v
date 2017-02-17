@@ -45,18 +45,7 @@ module queue_8x9_tb();
 	end
 	endtask
 
-	task clkL;
-	begin
-		clk <= 0; #10;
-	end
-	endtask
-
-	task clkH;
-	begin
-		clk <= 1; #10;
-	end
-	endtask
-
+	`DEFIO(clk,H,L)
 	`DEFASSERT(occupied,7,tb)
 	`DEFASSERT(rp,2,tb)
 	`DEFASSERT(wp,2,tb)

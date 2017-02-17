@@ -1,6 +1,9 @@
 .phony: test dlatch rx_DS_SE
 
-test:	rx_DS_SE rx_DS_char rx_top queue_8x9
+test:	receive_pipe transmit_pipe rx_top
+
+receive_pipe: rx_DS_SE rx_DS_char queue_8x9
+transmit_pipe: tx_DS_SE
 
 rx_DS_SE:
 	iverilog rx_DS_SE_tb.v rx_DS_SE.v
@@ -19,3 +22,6 @@ rx_top: rx_DS_SE rx_DS_char queue_8x9
 	iverilog rx_top_tb.v rx_top.v rx_DS_char.v rx_DS_SE.v queue_8x9.v
 	vvp -n a.out
 
+tx_DS_SE:
+	iverilog tx_DS_SE_tb.v tx_DS_SE.v
+	vvp -n a.out
