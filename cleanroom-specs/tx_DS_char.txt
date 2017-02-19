@@ -1,0 +1,245 @@
+RULES COVERING VALID INPUTS
+R1.00	The serializer must accept 8-bit NChars.
+R1.10	The serializer must accept all 2-bit LChars.
+R1.20	When the current character has been shifted out, a request for the next character will be made.
+R1.30	After reset, a request for the first character will be made.
+R1.40	The serializer must wait for a valid character in response to a request.
+R1.50	Characters presented when not requested are ignored.
+
+RULES COVERING THE INTER-CHARACTER PREFIX
+R2.00	The serializer must prefix all characters with an inter-character prefix (ICP).
+R2.10	The ICP is sent over the link in two bits, consisting first of one parity bit and then one LChar flag bit.
+R2.20	The very first ICP sent over a newly established link must have a parity bit set to 0.  (Spacewire section 7.5)
+
+RULES COVERING PARITY
+R3.00	The ICP parity bit must cover all data bits of the previous char, itself, AND the LChar flag bit of the current ICP.
+R3.05	The ICP parity bit must enforce odd parity.
+R3.10	After sending an ICP, but before sending the next character payload, parity resets to zero.
+R3.20	With each succeeding character bit, the parity counter toggles with each transmitted '1' bit.
+
+RULES COVERING VALID OUTPUTS
+R4.00	To transmit a binary '1', Tx1 must be asserted, and Tx0 negated.
+R4.10	To transmit a binary '0', Tx0 must be asserted, and Tx1 negated.
+R4.20	If not transmitting anything, both Tx0 and Tx1 must be negated.
+R4.30	If in reset state, transmission ceases and shift register is cleared.  Parity state reverts to 0.
+R4.40	If requesting a new character and no valid character appears in time, the serializer must stop transmitting.
+R4.50	Transmission must occur from LSB to MSB.
+
+OBSERVATIONS REGARDING PARITY
+O3.10	Applying R3.10 and R3.20 in the same cycle, the parity counter MAY be reset to the next character's LSB after sending an ICP, by the identity law of boolean addition (P=D0 === P=0 XOR D0).
+
+
+* BLACK BOX *
+
+
+Stimuli
+	R	Transmitter reset
+	nc	NChar received
+	lc	LChar received
+	ic	ICP transmitted
+	fc	Finished sending bits 0..1 or 0..7 of current character
+
+Responses
+	icp	Transmit ICP
+	tch	Transmit current character
+	rch	Character request
+	p0	Parity resets to 0.
+	sr0	Shift register state cleared.
+
+Enumeration
+
+:
+	R		rch					R1.30,R1.40,R4.30
+	nc		undefined
+	lc		undefined
+	ic		undefined
+	fch		undefined
+
+R:	R		-			R		R1.30,R1.40,R4.30
+	nc		icp					R2.00
+	lc		icp					R2.00
+	ic		undefined
+	fch		undefined
+
+R nc:	R		-			R		R1.30,R1.40,R4.30
+	nc		-			R nc		R1.50
+	lc		-			R nc		R1.50
+	ic		tch					R4.50
+	fch		undefined
+
+R lc:	R		-			R		R1.30,R1.40,R4.30
+	nc		-			R lc		R1.50
+	lc		-			R lc		R1.50
+	ic		tch					R4.50
+	fch		undefined
+
+R nc ic:
+	R		-			R		R1.30,R1.40,R4.30
+	nc		-			R nc ic		R1.50
+	lc		-			R nc ic		R1.50
+	ic		undefined
+	fch		rch			R		R1.20
+
+R lc ic:
+	R		-			R		R1.30,R1.40,R4.30
+	nc		-			R lc ic		R1.50
+	lc		-			R lc ic		R1.50
+	ic		undefined
+	fch		rch			R		R1.20
+
+
+Canonical Sequence Analysis
+
+			Ready	ChrLen	IcpLen	Parity
+R			Y	0	2	P in {0, 1}
+R nc			N	8	2	P
+R lc			N	2	2	P
+R nc ic			N	8	0	0
+R lc ic			N	2	0	0
+R nc ic fch		Y	0	2	P
+R lc ic fch 		Y	0	2	P
+
+* STATE BOX *
+
+	Ready	ChrLen	IcpLen	Parity	Stimulus	Ready'	ChrLen'	IcpLen'	Parity'		Action			Trace
+1	x	x	x	x	R		Y	0	2	0		-			R
+2	Y	0	2	P	nc		N	8	2	P		-			R nc
+3	Y	0	2	P	lc		N	2	2	P		-			R lc
+4	N	L	2	P	-		N	L	1	P		Transmit odd parity	R3.05
+5	N	L	1	P	-		N	L	0	0		Transmit LChar flag	R3.10
+6	N	L>1	0	P	ic		N	L-1	0	P XOR D		Transmit next LSB	R ic
+7	N	1	0	P	-		Y	0	2	P XOR D		Transmit next LSB	R ic
+
+
+* CLEAR BOX *
+
+
+IF cmd=R THEN	// S1
+	Ready=Y
+	ChrLen=0
+	IcpLen=2
+	Parity=0
+	Tx1=0
+	Tx0=0
+END
+IF cmd=NC AND Ready=Y AND ChrLen=0 AND IcpLen=2 THEN	// S2
+	Ready=N
+	ChrLen=8
+	Character=NextByte
+END
+IF cmd=LC AND Ready=Y AND ChrLen=0 AND IcpLen=2 THEN	// S3
+	Ready=N
+	ChrLen=2
+	Character=NextByte
+END
+IF Ready=N AND IcpLen=2 THEN				// S4
+	Tx1=~LCharFlag XOR Parity
+	Tx0=LCharFlag XOR Parity
+	IcpLen=1
+END
+IF Ready=N AND IcpLen=1 THEN				// S5
+	Tx1=LCharFlag
+	Tx0=~LCharFlag
+	IcpLen=0
+	Parity=0
+END
+IF Ready=N AND IcpLen=0 AND ChrLen>1 THEN		// S6
+	Tx1=LSB(Character)
+	Tx0=~LSB(Character)
+	Parity=Parity XOR LSB(Character)
+	Character=SRL(Character,1)
+	ChrLen=ChrLen-1
+END
+IF Ready=N AND IcpLen=0 AND ChrLen=1 THEN		// S7
+	Tx1=LSB(Character)
+	Tx0=~LSB(Character)
+	Parity=Parity XOR LSB(Character)
+	Character=SRL(Character,1)
+	ChrLen=ChrLen-1	// == 0
+	IcpLen=2
+	Ready=Y
+END
+
+
+module tx_DS_char(
+	input		TxReset,
+	input		TxClk,
+	input		valid_i,
+	input	[7:0]	dat_i,
+	input		lchar_i,
+
+	output		Tx0,
+	output		Tx1,
+	output		ready_o
+);
+	reg		ready;
+	reg	[3:0]	chrLen;
+	reg	[1:0]	icpLen;
+	reg	[7:0]	shreg;
+	reg		lcharFlag;
+
+	wire isReady = (ready && (chrLen == 4'd0) && (icpLen == 2'd2));
+	wire isSendingParity = (~ready && (icpLen == 2'd2));
+	wire isSendingLChar = (~ready && (icpLen == 2'd1));
+	wire isSendingBits = (~ready && (icpLen == 2'd0) && (chrLen > 0));
+
+	assign ready_o = isReady & ~valid_i;
+
+	always @(posedge TxClk) begin
+		ready <= ready;
+		chrLen <= chrLen;
+		icpLen <= icpLen;
+		parity <= parity;
+		Tx1 <= Tx1;
+		Tx0 <= Tx0;
+		shreg <= shreg;
+
+		if(TxReset) begin			// S1
+			ready <= 1;
+			chrLen <= 0;
+			icpLen <= 2'd2;
+			parity <= 0;
+			Tx1 <= 0;
+			Tx0 <= 0;
+			shreg <= 8'd0;
+		end
+		else begin
+			if(valid_i && isReady) begin	// S2, S3
+				ready <= 0;
+				shreg <= dat_i;
+				lcharFlag <= lchar_i;
+
+				if(lchar_i) begin	// S3
+					chrLen <= 3'd2;
+				end
+				else begin		// S2
+					chrLen <= 3'd8;
+				end
+			end
+			if(isSendingParity) begin	// S4
+				Tx1 <= ~lcharFlag ^ parity;
+				Tx0 <= lcharFlag ^ parity;
+				icpLen <= 2'd1;
+			end
+			if(isSendingLChar) begin	// S5
+				Tx1 <= lcharFlag;
+				Tx0 <= ~lcharFlag;
+				icpLen <= 2'd0;
+				parity <= 0;
+			end
+			if(isSendingBits) begin		// S6, S7
+				Tx1 <= shreg[0];
+				Tx0 <= ~shreg[0];
+				parity <= parity ^ shreg[0];
+				shreg <= (shreg >> 1);
+				chrLen <= chrLen - 1;
+
+				if(chrLen == 4'd1) begin	// S7
+					ready <= 1;
+					icpLen <= 2'd2;
+				end
+			end
+		end
+	end
+endmodule
+
