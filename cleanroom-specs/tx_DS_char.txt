@@ -87,7 +87,6 @@ R lc ic:
 	ic		undefined
 	fch		rch			R		R1.20
 
-
 Canonical Sequence Analysis
 
 			Ready	ChrLen	IcpLen	Parity
@@ -98,6 +97,30 @@ R nc ic			N	8	0	0
 R lc ic			N	2	0	0
 R nc ic fch		Y	0	2	P
 R lc ic fch 		Y	0	2	P
+
+
+Test Cases
+
+R R
+
+R nc R
+R nc nc
+R nc lc
+
+R lc R
+R lc nc
+R lc lc
+
+R nc ic R
+R nc ic nc
+R nc ic lc
+R nc ic fch
+
+R lc ic R
+R lc ic nc
+R lc ic lc
+R lc ic fch
+
 
 * STATE BOX *
 
