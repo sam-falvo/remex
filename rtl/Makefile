@@ -29,3 +29,7 @@ tx_DS_SE:
 tx_DS_char:
 	iverilog tx_DS_char_tb.v tx_DS_char.v
 	vvp -n a.out
+
+tx_top: tx_DS_SE tx_DS_char
+	iverilog tx_top_tb.v tx_top.v tx_DS_SE.v tx_DS_char.v
+	vvp -n a.out

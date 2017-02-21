@@ -43,6 +43,11 @@ module tx_DS_char(
 			shreg <= 8'd0;
 		end
 		else begin
+			if(isReady) begin
+				Tx0 <= 0;
+				Tx1 <= 0;
+			end
+
 			if(valid_i && isReady) begin	// S2, S3
 				ready <= 0;
 				shreg <= dat_i;

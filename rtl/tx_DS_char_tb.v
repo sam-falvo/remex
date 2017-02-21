@@ -219,7 +219,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Tx pins should not change.
+		assert_tx1(0); assert_tx0(0);	// Tx pins should quiesce.
 		assert_ready(1);
 
 		// R nc lc
@@ -322,7 +322,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Tx pins should not change.
+		assert_tx1(0); assert_tx0(0);	// Tx pins should quiesce.
 		assert_ready(1);
 
 		// R lc R
@@ -443,7 +443,7 @@ module tx_DS_char_tb();
 		
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Data should remain stable.
+		assert_tx1(0); assert_tx0(0);	// Data should quiesce.
 
 		// R lc lc
 
@@ -505,7 +505,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Data should remain stable.
+		assert_tx1(0); assert_tx0(0);	// Data should quiesce.
 
 
 		// R nc ic R
@@ -690,7 +690,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Tx pins should not change.
+		assert_tx1(0); assert_tx0(0);	// Tx pins should quiesce.
 		assert_ready(1);
 
 		// R nc ic lc
@@ -795,7 +795,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// Tx pins should not change.
+		assert_tx1(0); assert_tx0(0);	// Tx pins should quiesce.
 		assert_ready(1);
 
 		// R nc ic fch
@@ -920,7 +920,7 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// D/S stable.
+		assert_tx1(0); assert_tx0(0);	// Tx pins quiesced.
 		assert_ready(1);
 
 		// R lc ic lc
@@ -983,12 +983,96 @@ module tx_DS_char_tb();
 
 		clkL(); clkH();
 
-		assert_tx1(1); assert_tx0(0);	// D/S stable.
+		assert_tx1(0); assert_tx0(0);	// Tx pins quiesced.
 		assert_ready(1);
 
 		// R lc ic fch
 		//	implied by R lc ic {nc|lc} tests above.
 
+		// Make sure that the S signal is stable between characters.
+
+		story_tb <= 12'h0D0;
+		{clk, valid_i, lchar_i, dat_i} <= 0;
+		reset <= 1;
+
+		clkL(); clkH();
+
+		reset <= 0;
+
+		clkL(); clkH();
+
+		dat_i <= 8'h02;
+		lchar_i <= 1;
+		valid_i <= 1;
+
+		clkL(); clkH();
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(0);	assert_tx0(1);	// Parity
+
+		valid_i <= 0;
+		story_tb <= 12'h0D1;
+
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(1);	assert_tx0(0);	// LChar flag
+
+		story_tb <= 12'h0D2;
+
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(0);	assert_tx0(1);	// D0a
+
+		story_tb <= 12'h0D3;
+
+		clkL(); clkH();
+
+		assert_ready(1);
+		assert_tx1(1);	assert_tx0(0);	// D1a
+
+		story_tb <= 12'h0D4;
+		dat_i <= 8'h00;
+		valid_i <= 1;
+		lchar_i <= 1;
+
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(0);	assert_tx0(0);	// Do not insert spurious bits
+		
+		story_tb <= 12'h0D5;
+		valid_i <= 0;
+		lchar_i <= 0;
+
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(1);	assert_tx0(0);	// Parity
+	
+		story_tb <= 12'h0D5;
+		
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(1);	assert_tx0(0);	// LChar flag
+	
+		story_tb <= 12'h0D6;
+		
+		clkL(); clkH();
+
+		assert_ready(0);
+		assert_tx1(0);	assert_tx0(1);	// D0b
+	
+		story_tb <= 12'h0D7;
+		
+		clkL(); clkH();
+
+		assert_ready(1);
+		assert_tx1(0);	assert_tx0(1);	// D1b
+	
 		$display("@I Done.");
 		$stop;
 	end
