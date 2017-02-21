@@ -3,7 +3,7 @@
 test:	receive_pipe transmit_pipe rx_top
 
 receive_pipe: rx_DS_SE rx_DS_char queue_8x9
-transmit_pipe: tx_DS_SE
+transmit_pipe: tx_DS_SE tx_DS_char
 
 rx_DS_SE:
 	iverilog rx_DS_SE_tb.v rx_DS_SE.v
@@ -24,4 +24,8 @@ rx_top: rx_DS_SE rx_DS_char queue_8x9
 
 tx_DS_SE:
 	iverilog tx_DS_SE_tb.v tx_DS_SE.v
+	vvp -n a.out
+
+tx_DS_char:
+	iverilog tx_DS_char_tb.v tx_DS_char.v
 	vvp -n a.out
