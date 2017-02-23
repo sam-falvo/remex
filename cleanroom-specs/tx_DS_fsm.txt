@@ -1,0 +1,270 @@
+* REQUIREMENTS *
+
+
+R1
+	The transmitter has four enables: one each for timecodes, FCTs, data, and IDLEs.
+
+R1.1
+	If a link error of any kind is detected, and auto-disconnect is enabled, the transmitter must be disabled.
+
+R2
+	If enabled and a timecode is requested, it must be sent as soon as possible.
+
+R3
+	If enabled and the RX pipeline indicates resources have become available, it must send a FCT as soon as possible.
+
+R4
+	If enabled and the TX queue isn't empty and the head is an NChar and receiver has space left, it must transmit the NChar.
+
+R5
+	If enabled and the TX queue isn't empty and the head is a valid LChar and receiver has space left, it must transmit the LChar.
+
+R6
+	If enabled and the TX queue isn't empty and the head is an invalid LChar, it must consume and drop the LChar.
+
+R7
+	When enabled and no other source indicates data need be sent, the transmitter must issue IDLE characters.
+
+R8
+	The priority of data to send must be, from highest to lowest: timecodes, FCTs, NChars (with valid LChars), IDLE.
+
+
+Stimuli
+-------
+
+R	Reset
+tc	Timecode requested
+rx	At least 8 FIFO slots become available in RX FIFO
+tv	Head of TX queue is a valid character to transmit and receiver has space left
+ti	Head of TX queue is an invalid character to drop
+i	Idle; no other input sources has data.
+s	Previous character sent
+
+
+Responses
+---------
+txE	Transmit ESC LChar
+txF	Transmit FCT LChar
+txN	Transmit character from TX queue
+txT	Transmit timecode NChar
+dr	Drop TX queue
+dc	Decrement credit
+
+Enumeration
+-----------
+
+:
+	R	-
+	tc	undefined
+	rx	undefined
+	tv	undefined
+	ti	undefined
+	i	undefined
+	s	undefined
+
+R:
+	R	-			R
+	tc	txE
+	rx	txF
+	tv	txN dr dc
+	ti	dr			R
+	i	txE
+	s	undefined
+
+R tc:
+	R	-			R
+	tc	-			R tc
+	rx	-			R tc
+	tv	-			R tc
+	ti	-			R tc
+	i	-			R tc
+	s	txT
+
+R rx:
+	R	-			R
+	tc	-			R rx
+	rx	-			R rx
+	tv	-			R rx
+	ti	-			R rx
+	i	-			R rx
+	s	-			R
+
+R tv:
+	R	-			R
+	tc	-			R tv
+	rx	-			R tv
+	tv	-			R tv
+	ti	-			R tv
+	i	-			R tv
+	s	-			R
+
+R i:
+	R	-			R
+	tc	-			R i
+	rx	-			R i
+	tv	-			R i
+	ti	-			R i
+	i	-			R i
+	s	txF
+
+R tc s:
+	R	-			R
+	tc	-			R tc s
+	rx	-			R tc s
+	tv	-			R tc s
+	ti	-			R tc s
+	i	-			R tc s
+	s	-			R
+
+R i s:
+	R	-			R
+	tc	-			R i s
+	rx	-			R i s
+	tv	-			R i s
+	ti	-			R i s
+	i	-			R i s
+	s	-			R
+
+
+Canonical Sequences
+-------------------
+
+		Init	SendingTime	SendingFCT	SendingData	SendingIdle	EscPrefix
+R		Y	N		N		N		N		N
+R tc		Y	Y		N		N		N		Y
+R rx		Y	N		Y		N		N		N
+R tv		Y	N		N		Y		N		N
+R i		Y	N		N		N		Y		Y
+R tc s		Y	Y		N		Y		N		N
+R i s		Y	N		Y		N		Y		N
+
+* STATE BOX *
+
+	Init	ST	SF	SD	SI	EP	STIM	Init'	ST'	SF'	SD'	SI'	EP'
+	N	x	x	x	x	x	R	Y	N	N	N	N	N
+	
+	Y	N	N	N	N	N	tc	Y	Y	N	N	N	Y
+	Y	Y	N	N	N	Y	s	Y	Y	N	Y	N	N
+	Y	Y	N	Y	N	N	s	Y	N	N	N	N	N
+
+	Y	N	N	N	N	N	rx	Y	N	Y	N	N	N
+	Y	N	Y	N	N	N	s	Y	N	N	N	N	N
+	
+	Y	N	N	N	N	N	tv	Y	N	N	Y	N	N
+	Y	N	N	Y	N	N	s	Y	N	N	N	N	N
+
+	Y	N	N	N	N	N	i	Y	N	N	N	Y	Y
+	Y	N	N	N	Y	Y	s	Y	N	Y	N	Y	N
+	Y	N	Y	N	Y	N	s	Y	N	N	N	N	N
+
+Stimulus R
+----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+-	-	-	-	-	-		Y	N	N	N	N	N
+
+Stimulus tc
+-----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+Y	N	N	N	N	N		Y	Y	N	N	N	Y
+a	b	c	d	e	f		a	b	c	d	e	f
+
+Stimulus rx
+-----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+Y	N	N	N	N	N		Y	N	Y	N	N	N
+a	b	c	d	e	f		a	b	c	d	e	f
+
+Stimulus tv
+-----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+Y	N	N	N	N	N		Y	N	N	Y	N	N
+a	b	c	d	e	f		a	b	c	d	e	f
+
+Stimulus i
+----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+Y	N	N	N	N	N		Y	N	N	N	Y	Y
+a	b	c	d	e	f		a	b	c	d	e	f
+
+Stimulus s
+----------
+
+Init	ST	SF	SD	SI	EP	-->	Init'	ST'	SF'	SD'	SI'	EP'
+Y	Y	N	N	N	Y		Y	Y	N	Y	N	N
+Y	Y	N	Y	N	N		Y	N	N	N	N	N
+Y	N	Y	N	N	N		Y	N	N	N	N	N
+Y	N	N	Y	N	N		Y	N	N	N	N	N
+Y	N	N	N	Y	Y		Y	N	Y	N	Y	N
+Y	N	Y	N	Y	N		Y	N	N	N	N	N
+a	b	c	d	e	f		a	b	c	d	e	f
+
+
+* CLEAR BOX *
+
+/*
+ * This has got to be one of the worst Clear Box derivations I've ever made.
+ * There are terms and conditions in the following abstract state machine
+ * description that I just don't know how to express properly in the blackbox
+ * or state box decompositions.  Please accept my apologies.
+ */
+
+IF cmd=R THEN
+	Init=Y
+	ST=SF=SD=SI=EP=N
+	credit=0
+ELSE
+	IF Init THEN
+		IF ST=SF=SD=SI=EP=N THEN
+			IF cmd=tc THEN
+				ST=Y
+				EP=Y
+				Serialize(ESC)
+			END
+			IF cmd=rx THEN
+				SF=Y
+				Serialize(FCT)
+			END
+			IF cmd=tv AND credit > 0 THEN
+				SD=Y
+				Serialize(Head(TXQ))
+				TXQ=Tail(TXQ)
+				credit=credit-1
+			END
+			IF cmd=ti THEN
+				TXQ=Tail(TXQ)
+			END
+			IF cmd=i THEN
+				SI=Y
+				EP=Y
+				Serialize(ESC)
+			END
+		END
+		IF cmd=s THEN
+			IF (ST=EP=Y) /\ (SF=SD=SI=N) THEN
+				EP=N
+				SD=Y
+				Serialize(TimeStampNChar)
+			END
+			IF (ST=SD=Y) /\ (SF=SI=EP=N) THEN
+				ST=SD=N
+			END
+			IF (ST=SD=SI=EP=N) /\ (SF=Y) THEN
+				SF=N
+			END
+			IF (ST=SF=SD=N) /\ (SI=EP=Y) THEN
+				EP=N
+				SF=Y
+				Serialize(FCT)
+			END
+			IF (ST=SD=EP=N) /\ (SF=SI=Y) THEN
+				SF=N
+				SI=N
+			END
+		END
+	END
+END
