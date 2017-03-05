@@ -13,7 +13,7 @@ module sram(
 
 	input	[1:0]	sram_sel_i,
 	input		sram_we_i,
-	input	[18:0]	sram_adr_i,
+	input	[19:1]	sram_adr_i,
 	output	[15:0]	sram_dat_o,
 	input	[15:0]	sram_dat_i,
 	input		sram_stb_i,

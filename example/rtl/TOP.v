@@ -11,7 +11,12 @@ module TOP(
 	output		sram_we_on,
 	output		sram_oe_on,
 	output		sram_lbe_on,
-	output		sram_ube_on
+	output		sram_ube_on,
+
+	output		led0,
+	output		led1,
+	output		led2,
+	input		switch0
 );
 	wire iack, istb;
 	wire [31:0] idat;
@@ -26,22 +31,24 @@ module TOP(
 	wire [63:0] sadr;
 	wire swe, scyc, sstb, ssigned, sack;
 	wire ssiz;
-	wire [63:0] sdati_wide;
 	wire [63:0] wbdato;
 	wire [7:0] wbsel;
 	wire [15:0] wbdati;
-
+	wire ram_ack, remex_ack, gpia_ack, rom_ack;
+	wire [15:0] ram_dat_o, remex_dat_o, gpia_dat_o, rom_dat_o;
+	wire [15:0] gpia_outputs;
 
 	// Main clock is 100MHz on icoBoard.
-	// Reduce it to 25MHz for CPU.
+	// Reduce it to no more than 25MHz for CPU.
 
-	reg div2 = 0;
+	reg [7:0] divider = 0;
 	reg cpu_clk = 0;
 
 	always @(posedge fpga_clk) begin
-		div2 <= ~div2;
-		if(div2) begin
+		divider <= divider + 1;
+		if(divider == 7'd 50) begin
 			cpu_clk <= ~cpu_clk;
+			divider <= 0;
 		end
 	end
 
@@ -120,6 +127,8 @@ module TOP(
 		.xdat_i(xdati)
 	);
 
+	// Reduce bus to 16-bits wide.
+
 	bottleneck bot(
 		.clk_i(cpu_clk),
 		.reset_i(cpu_reset),
@@ -143,20 +152,52 @@ module TOP(
 		.s_we_o(swe),
 		.s_dat_o(sdato),
 		.s_ack_i(sack),
-		.s_dat_i(sdati)
+		.s_dat_i({48'd0, sdati})
 	);
+
+	// Expose a Wishbone B3 interface.
 
 	bridge wb_bridge(
 		.f_signed_i(ssigned),
 		.f_siz_i({1'b0, ssiz}),
 		.f_adr_i({2'b00, sadr[0]}),
 		.f_dat_i({48'd0, sdato}),
-		.f_dat_o(sdati_wide),
+		.f_dat_o(sdati),
 
 		.wb_sel_o(wbsel),
 		.wb_dat_o(wbdato),
 		.wb_dat_i({48'd0, wbdati})
 	);
+
+	wire ram_addr   = sadr[23:20] == 4'b0000;
+	wire gpia_addr  = sadr[23:20] == 4'b0001;
+	wire remex_addr = sadr[23:20] == 4'b0010;
+	wire rom_addr   = sadr[23:20] == 4'b1111;
+
+	wire ram_stb   = scyc & sstb & ram_addr;
+	wire gpia_stb  = scyc & sstb & gpia_addr;
+	wire remex_stb = scyc & sstb & remex_addr;
+	wire rom_stb   = scyc & sstb & rom_addr;
+
+	// We want sack asserted if we address a non-existent
+	// region of memory.  The data read back will just be 0.
+	// Remember, this logic only works because of how B3
+	// defines the relationship between STB and ACK signals.
+	// If upgrading to Wishbone B4, we'll need to change this.
+
+	assign sack	= (ram_stb ? ram_ack : 1)
+//			& (remex_stb ? remex_ack : 1)
+			& (gpia_stb ? gpia_ack : 1)
+			& (rom_stb ? rom_ack : 1)
+			;
+
+	assign wbdati	= (ram_ack ? ram_dat_o : 0)
+//			| (remex_ack ? remex_dat_o : 0)
+			| (gpia_ack ? gpia_dat_o : 0)
+			| (rom_ack ? rom_dat_o : 0)
+			;
+
+	// Static RAM interface.
 
 	sram ram(
 		.sram_clk(cpu_clk),
@@ -170,10 +211,39 @@ module TOP(
 		.sram_sel_i(wbsel[1:0]),
 		.sram_we_i(swe),
 		.sram_adr_i(sadr[19:1]),
-		.sram_dat_o(wbdati),
+		.sram_dat_o(ram_dat_o),
 		.sram_dat_i(wbdato[15:0]),
-		.sram_stb_i(sstb),
-		.sram_ack_o(sack)
+		.sram_stb_i(ram_stb),
+		.sram_ack_o(ram_ack)
+	);
+
+	// General Purpose I/O Adapter.
+
+	GPIA gpia(
+		.RST_I(cpu_reset),
+		.CLK_I(cpu_clk),
+		.PORT_O(gpia_outputs),
+		.PORT_I({15'd0, switch0}),
+		.ADR_I(sadr[1]),
+		.CYC_I(scyc),
+		.STB_I(gpia_stb),
+		.WE_I(swe),
+		.DAT_I(wbdato[15:0]),
+		.DAT_O(gpia_dat_o),
+		.ACK_O(gpia_ack)
+	);
+
+	assign led0 = gpia_outputs[0];
+	assign led1 = gpia_outputs[1];
+	assign led2 = gpia_outputs[2];
+
+	// Bootstrap ROM.
+
+	BROM rom(
+		.adr_i(sadr[7:1]),
+		.dat_o(rom_dat_o),
+		.stb_i(rom_stb),
+		.ack_o(rom_ack)
 	);
 endmodule
 
