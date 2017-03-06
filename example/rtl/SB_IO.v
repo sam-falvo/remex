@@ -1,3 +1,4 @@
+`ifndef SYNTHESIS
 module SB_IO(
 	inout		PACKAGE_PIN,
 	input		OUTPUT_ENABLE,
@@ -10,4 +11,4 @@ module SB_IO(
 	assign PACKAGE_PIN = (OUTPUT_ENABLE ? D_OUT_0 : 1'bz);
 	assign D_IN_0 = PACKAGE_PIN;
 endmodule
-
+`endif
