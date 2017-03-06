@@ -17,7 +17,7 @@ module BROM(
 		7'd4: dat_o = 16'h0113;
 		7'd5: dat_o = 16'h0011;
 		7'd6: dat_o = 16'h5213;
-		7'd7: dat_o = 16'h0101;
+		7'd7: dat_o = 16'h0011;
 		7'd8: dat_o = 16'h9123;
 		7'd9: dat_o = 16'h0041;
 		7'd10: dat_o = 16'hF06F;

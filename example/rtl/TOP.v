@@ -28,7 +28,7 @@ module TOP(
 	wire xwe, xcyc, xstb, xsigned, xack;
 	wire [1:0] xsiz;
 	wire [15:0] sdato, sdati;
-	wire [63:0] sadr;
+	wire [63:0] sadr, sdati_wide;
 	wire swe, scyc, sstb, ssigned, sack;
 	wire ssiz;
 	wire [63:0] wbdato;
@@ -38,10 +38,12 @@ module TOP(
 	wire [15:0] ram_dat_o, remex_dat_o, gpia_dat_o, rom_dat_o;
 	wire [15:0] gpia_outputs;
 
+	assign sdati = sdati_wide[15:0];
+
 	// Main clock is 100MHz on icoBoard.
 	// Reduce it to no more than 25MHz for CPU.
 
-	reg [7:0] divider = 0;
+	reg [6:0] divider = 0;
 	reg cpu_clk = 0;
 
 	always @(posedge fpga_clk) begin
@@ -63,7 +65,7 @@ module TOP(
 		.mpie_o(),
 		.mie_o(),
 
-		.irq_i(0),
+		.irq_i(1'b0),
 
 		.iack_i(iack),
 		.idat_i(idat),
@@ -83,9 +85,9 @@ module TOP(
 		.cadr_o(),
 		.coe_o(),
 		.cwe_o(),
-		.cvalid_i(0),
+		.cvalid_i(1'b0),
 		.cdat_o(),
-		.cdat_i(0)
+		.cdat_i(64'd0)
 	);
 
 	// Converge Harvard buses to Von Neumann
@@ -96,13 +98,13 @@ module TOP(
 		.clk_i(cpu_clk),
 		.reset_i(cpu_reset),
 
-		.idat_i(0),
+		.idat_i(64'd0),
 		.iadr_i(iadr),
-		.iwe_i(0),
+		.iwe_i(1'b0),
 		.icyc_i(istb),
 		.istb_i(istb),
-		.isiz_i(2),	// Always 32-bit
-		.isigned_i(0),
+		.isiz_i(2'd2),	// Always 32-bit
+		.isigned_i(1'b0),
 		.iack_o(iack),
 		.idat_o(idat_wide),
 
@@ -152,7 +154,7 @@ module TOP(
 		.s_we_o(swe),
 		.s_dat_o(sdato),
 		.s_ack_i(sack),
-		.s_dat_i({48'd0, sdati})
+		.s_dat_i(sdati)
 	);
 
 	// Expose a Wishbone B3 interface.
@@ -162,7 +164,7 @@ module TOP(
 		.f_siz_i({1'b0, ssiz}),
 		.f_adr_i({2'b00, sadr[0]}),
 		.f_dat_i({48'd0, sdato}),
-		.f_dat_o(sdati),
+		.f_dat_o(sdati_wide),
 
 		.wb_sel_o(wbsel),
 		.wb_dat_o(wbdato),

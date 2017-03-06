@@ -61,8 +61,8 @@ module alu(
 	wire [63:0] rsh1  = inB_i[0] ? {sx0, rsh2[63:1]} : rsh2;
 	wire [63:0] rshs = rsh_en_i ? rsh1 : 0;
 
-	wire isLTS = lts_en_i ? {63'd0, rawSums[63] ^ vflag_o} : 0;
-	wire isLTU = ltu_en_i ? {63'd0, ~cflag_o} : 0;
+	wire [63:0] isLTS = lts_en_i ? {63'd0, rawSums[63] ^ vflag_o} : 0;
+	wire [63:0] isLTU = ltu_en_i ? {63'd0, ~cflag_o} : 0;
 
 	assign out_o = sums | ands | xors | lshs | rshs | isLTS | isLTU;
 endmodule
